@@ -95,6 +95,8 @@ ___________________¶¶¶¶¶¶¶¶
 #include <sys/sendfile.h>
 #include <unistd.h>
 
+#define USE_SENDFILE 1
+
 #define SERVER_PORT 50000
 #define SERVER_ADDR "localhost"
 
@@ -106,9 +108,14 @@ int main(int argc, char* argv[]) {
     int sent_bytes;
     char file_size[256];
     struct stat file_stat;
-    off_t offset;
     int remain_data;
     char filepath[255];
+
+#if !USE_SENDFILE
+    fprintf(stdout, "Simple File Transmission Client. Using send() function and file chunks.\n");
+#else
+    fprintf(stdout, "Simple File Transmission Client. Using sendfile() function.\n");
+#endif
 
     fprintf(stdout, "Input a valid path to file: ");
     fgets(filepath, 255, stdin);
@@ -162,13 +169,21 @@ int main(int argc, char* argv[]) {
     }
     usleep(100);
 
-    offset = 0;
     remain_data = (int)file_stat.st_size;
 
+#if !USE_SENDFILE
+    size_t bytes_read;
+    char buffer[BUFSIZ];
+    while (((bytes_read = (size_t)read(fd, buffer, BUFSIZ))) && (remain_data > 0)) {
+        sent_bytes = (int)send(client_socket, buffer, bytes_read, 0);
+        remain_data -= sent_bytes;
+    }
+#else
+    off_t offset = 0;
     while (((sent_bytes = (int)sendfile(client_socket, fd, &offset, BUFSIZ)) > 0) && (remain_data > 0)) {
         remain_data -= sent_bytes;
     }
-
+#endif
     close(fd);
     close(client_socket);
 

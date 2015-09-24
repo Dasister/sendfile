@@ -106,6 +106,8 @@ int main(int argc, char *argv[]) {
     char buffer[BUFSIZ];
     char filename[255];
 
+    fprintf(stdout, "Simple File Transmission Server.\n");
+
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket == -1) {
         fprintf(stderr, "Error constructing socket: %s", strerror(errno));
